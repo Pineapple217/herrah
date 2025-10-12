@@ -1,0 +1,19 @@
+#!ipxe
+
+echo Herrah {{ .Version }}
+echo https://github.com/Pineapple217/herrah
+echo Starting Herrah iPXE chain...
+echo
+
+# Init networking
+dhcp
+
+# Debug info
+echo next-server is ${next-server}
+echo filename is ${filename}
+echo MAC address is ${net0/mac}
+echo uuid is ${uuid}
+echo IP address is ${ip}
+
+# Chain new iPXE file
+chain http://${next-server}/${uuid}?mac=${net0/mac}
