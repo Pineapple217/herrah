@@ -16,4 +16,4 @@ echo uuid is ${uuid}
 echo IP address is ${ip}
 
 # Chain new iPXE file
-chain http://${next-server}/${uuid}?mac=${net0/mac}
+chain http://${next-server}/boot/${uuid}?mac=${net0/mac}

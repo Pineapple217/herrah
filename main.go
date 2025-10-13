@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
 )
@@ -19,8 +17,10 @@ const banner = `
        \/       \/                  \/     \/   %s
 
 https://github.com/Pineapple217/herrah
------------------------------------------------
+------------------------------------------------------
 `
+
+var store = OpenStore("/var/lib/herrah/store.json")
 
 func main() {
 
@@ -31,6 +31,8 @@ func main() {
 
 	switch os.Args[1] {
 	case "test":
+		fmt.Println("TODO")
+		os.Exit(0)
 
 	case "run":
 		slog.SetDefault(slog.New(slog.Default().Handler()))
@@ -38,19 +40,7 @@ func main() {
 		os.Stdout.Sync()
 
 		go startTFTPServer()
-
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			log.Printf("%s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
-			fmt.Fprintln(w, "OK")
-		})
-
-		addr := ":80"
-		log.Printf("Server listening on %s", addr)
-		go func() {
-			if err := http.ListenAndServe(addr, nil); err != nil {
-				log.Fatal(err)
-			}
-		}()
+		go startHTTPServer()
 
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, os.Interrupt)
@@ -58,10 +48,11 @@ func main() {
 		slog.Info("Received an interrupt signal, exiting...")
 
 	case "install":
+		prefImg()
+		os.Exit(0)
 
 	default:
 		fmt.Println("expected 'test', 'run' or 'install' subcommands")
 		os.Exit(1)
 	}
-
 }
