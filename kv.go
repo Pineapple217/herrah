@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"sync"
 )
 
@@ -19,7 +21,7 @@ func OpenStore(path string) *Store {
 	f, err := os.Open(path)
 	if err == nil {
 		defer f.Close()
-		json.NewDecoder(f).Decode(&s.data)
+		_ = json.NewDecoder(f).Decode(&s.data)
 	} else if !os.IsNotExist(err) {
 		panic(err)
 	}
@@ -38,22 +40,71 @@ func (s *Store) Set(key string, value any) error {
 	return s.persist()
 }
 
-// Get retrieves and decodes a value from JSON into generic Go types (map[string]any, []any, etc.).
-func (s *Store) Get(key string) (any, bool, error) {
+// Get retrieves a key and unmarshals it into the provided pointer.
+// Example: store.Get("user:123", &user)
+func (s *Store) Get(key string, out any) (bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
 	data, ok := s.data[key]
 	if !ok {
-		return nil, false, nil
+		return false, nil
 	}
-	var v any
-	if err := json.Unmarshal(data, &v); err != nil {
-		return nil, true, err
+	if err := json.Unmarshal(data, out); err != nil {
+		return true, err
 	}
-	return v, true, nil
+	return true, nil
 }
 
-// Delete removes a key from the store and persists the change.
+// GetByPrefix unmarshals all matching keys into the given map pointer.
+// Example: store.GetByPrefix("user:", &map[string]User{})
+func (s *Store) GetByPrefix(prefix string, out any) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// out must be a pointer to a map[string]T
+	outMap, ok := out.(*map[string]any)
+	if !ok {
+		// We need reflection to handle map[string]T properly
+		return s.getByPrefixReflect(prefix, out)
+	}
+
+	result := make(map[string]any)
+	for k, raw := range s.data {
+		if strings.HasPrefix(k, prefix) {
+			var v any
+			if err := json.Unmarshal(raw, &v); err != nil {
+				return err
+			}
+			result[k] = v
+		}
+	}
+	*outMap = result
+	return nil
+}
+
+func (s *Store) getByPrefixReflect(prefix string, out any) error {
+	rv := reflect.ValueOf(out)
+	if rv.Kind() != reflect.Ptr || rv.Elem().Kind() != reflect.Map {
+		return &json.InvalidUnmarshalError{Type: reflect.TypeOf(out)}
+	}
+	m := reflect.MakeMap(rv.Elem().Type())
+	elemType := rv.Elem().Type().Elem()
+
+	for k, raw := range s.data {
+		if strings.HasPrefix(k, prefix) {
+			elemPtr := reflect.New(elemType)
+			if err := json.Unmarshal(raw, elemPtr.Interface()); err != nil {
+				return err
+			}
+			m.SetMapIndex(reflect.ValueOf(k), elemPtr.Elem())
+		}
+	}
+	rv.Elem().Set(m)
+	return nil
+}
+
+// Delete removes a key and persists the change.
 func (s *Store) Delete(key string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -61,7 +112,7 @@ func (s *Store) Delete(key string) error {
 	return s.persist()
 }
 
-// persist writes the entire store atomically as JSON.
+// persist writes the entire store atomically.
 func (s *Store) persist() error {
 	dir := filepath.Dir(s.path)
 	tmp := filepath.Join(dir, "data.tmp")
@@ -83,22 +134,4 @@ func (s *Store) persist() error {
 		return err
 	}
 	return os.Rename(tmp, s.path)
-}
-
-// GetByPrefix returns all key-value pairs where the key starts with the given prefix.
-func (s *Store) GetByPrefix(prefix string) (map[string]any, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	result := make(map[string]any)
-	for k, raw := range s.data {
-		if len(k) >= len(prefix) && k[:len(prefix)] == prefix {
-			var v any
-			if err := json.Unmarshal(raw, &v); err != nil {
-				return nil, err
-			}
-			result[k] = v
-		}
-	}
-	return result, nil
 }

@@ -1,0 +1,19 @@
+#!ipxe
+
+# Init networking
+dhcp
+
+set base-url http://${next-server}/files
+
+echo Booting openSUSE MicroOS 16.0.0...
+kernel ${base-url}/pxeboot.openSUSE-MicroOS.x86_64-16.0.0.kernel \
+    initrd=initrd \
+    rd.neednet=1 ip=dhcp \
+    rd.kiwi.install.pxe \
+    rd.kiwi.install.image=${base-url}/openSUSE-MicroOS.x86_64-16.0.0.xz \
+    console=tty0 console=tty1 loglevel=3
+
+initrd ${base-url}/pxeboot.openSUSE-MicroOS.x86_64-16.0.0.initrd
+
+echo booting...
+boot

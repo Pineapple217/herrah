@@ -48,7 +48,10 @@ func main() {
 		slog.Info("Received an interrupt signal, exiting...")
 
 	case "install":
-		prefImg()
+		err := prefImg()
+		if err != nil {
+			panic(err)
+		}
 		os.Exit(0)
 
 	default:

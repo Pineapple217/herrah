@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync/atomic"
+	"time"
 )
 
 const microosDownload = `https://download.opensuse.org/tumbleweed/appliances/openSUSE-MicroOS.x86_64-SelfInstall.install.tar`
@@ -22,16 +24,60 @@ func DownloadToTempFile(url string) (string, error) {
 		return "", fmt.Errorf("bad status: %s", resp.Status)
 	}
 
-	tmpFile, err := os.CreateTemp("", "herrah-download-*")
+	tmpFile, err := os.CreateTemp("/var/lib/herrah/downloads", "herrah-download-*")
 	if err != nil {
 		return "", err
 	}
 	defer tmpFile.Close()
 
-	_, err = io.Copy(tmpFile, resp.Body)
-	if err != nil {
-		return "", err
+	var downloaded int64
+	contentLength := resp.ContentLength
+
+	// Wrap resp.Body to count bytes read
+	reader := io.TeeReader(resp.Body, tmpFile)
+
+	// Start progress printer
+	stop := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				dl := atomic.LoadInt64(&downloaded)
+				if contentLength > 0 {
+					fmt.Printf("Downloaded %.2f MB / %.2f MB (%.0f%%)\n",
+						float64(dl)/1024/1024,
+						float64(contentLength)/1024/1024,
+						float64(dl)/float64(contentLength)*100)
+				} else {
+					fmt.Printf("Downloaded %.2f MB\n", float64(dl)/1024/1024)
+				}
+			case <-stop:
+				return
+			}
+		}
+	}()
+
+	// Copy while tracking progress
+	buf := make([]byte, 32*1024)
+	for {
+		n, err := reader.Read(buf)
+		if n > 0 {
+			atomic.AddInt64(&downloaded, int64(n))
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			close(stop)
+			return "", err
+		}
 	}
+
+	close(stop)
+	fmt.Printf("Download complete: %.2f MB written to %s\n",
+		float64(downloaded)/1024/1024, tmpFile.Name())
 
 	return tmpFile.Name(), nil
 }

@@ -1,5 +1,4 @@
 #!ipxe
 
-dhcp
 sleep 5
 chain http://${next-server}/boot/${uuid}?mac=${net0/mac}

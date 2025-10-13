@@ -24,6 +24,9 @@ var mithrilJS []byte
 //go:embed sleep.ipxe
 var sleepIPXE []byte
 
+//go:embed boot.ipxe
+var bootIPXE []byte
+
 func startHTTPServer() {
 	http.HandleFunc("GET /", logging(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -67,6 +70,10 @@ func startHTTPServer() {
 	}))
 	http.HandleFunc("GET /boot/{uuid}", logging(handleBoot))
 
+	// Serve static files from /var/lib/herrah at /files/
+	fileServer := http.FileServer(http.Dir("/var/lib/herrah"))
+	http.Handle("GET /files/", logging(http.StripPrefix("/files/", fileServer).ServeHTTP))
+
 	http.HandleFunc("/", logging(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	}))
@@ -80,7 +87,8 @@ func startHTTPServer() {
 
 func handleBoot(w http.ResponseWriter, r *http.Request) {
 	uuid := r.PathValue("uuid")
-	m, ok, err := store.Get("machine-" + uuid)
+	var m machine
+	ok, err := store.Get("machine-"+uuid, &m)
 	if err != nil {
 		panic(err)
 	}
@@ -90,7 +98,7 @@ func handleBoot(w http.ResponseWriter, r *http.Request) {
 			Name:    "NEW " + uuid,
 			UUID:    uuid,
 			MAC:     mac,
-			IP:      r.RemoteAddr,
+			IP:      "TBD",
 			Control: "fresh",
 		})
 		if err != nil {
@@ -102,16 +110,18 @@ func handleBoot(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	} else {
-		ma := m.(machine)
-		if ma.Control == "fresh" {
+		if m.Control == "fresh" {
 			_, err = w.Write(sleepIPXE)
 			if err != nil {
 				panic(err)
 			}
 			return
 		}
-		if ma.Control == "init" {
-
+		if m.Control == "init" {
+			_, err = w.Write(bootIPXE)
+			if err != nil {
+				panic(err)
+			}
 			return
 		}
 	}
