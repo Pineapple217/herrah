@@ -10,9 +10,79 @@
         <title>Herrah</title>
         <script src="/mithril.js"></script>
         <script type="module" src="/index.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     </head>
 
+    <header>
+        <h1>Herrah</h1>
+        <nav>
+            <a href="/files">Files</a>
+        </nav>
+    </header>
+
     <body>
+        <div x-data="machinesTable()" x-init="load()">
+            <h2>Machines</h2>
+
+            <table border="1" cellpadding="6">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>UUID</th>
+                        <th>MAC</th>
+                        <th>IP</th>
+                        <th>Control</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template></template>
+                    <template x-for="(machine, key) in machines" :key="key">
+                        <tr>
+                            <td x-text="machine.name"></td>
+                            <td x-text="machine.uuid"></td>
+                            <td x-text="machine.mac"></td>
+                            <td x-text="machine.ip"></td>
+                            <td x-text="machine.control"></td>
+                            <td>
+                                <button @click="edit(key)">Edit</button>
+                                <button @click="remove(key)" style="margin-left:5px">Delete</button>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <script>
+            function machinesTable() {
+                return {
+                    machines: {},
+                    async load() {
+                        const res = await fetch('/machines');
+                        this.machines = await res.json();
+                    },
+                    async edit(key) {
+                        const machine = this.machines[key];
+                        const newName = prompt('Enter new name:', machine.name);
+                        if (newName && newName !== machine.name) {
+                            await fetch(`/machines/${machine.uuid}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name: newName })
+                            });
+                            this.machines[key].name = newName;
+                        }
+                    },
+                    async remove(key) {
+                        const machine = this.machines[key];
+                        if (!confirm(`Delete ${machine.name}?`)) return;
+                        await fetch(`/machines/${machine.uuid}`, { method: 'DELETE' });
+                        delete this.machines[key];
+                    }
+                };
+            }
+        </script>
     </body>
 
 </html>

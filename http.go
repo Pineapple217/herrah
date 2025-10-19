@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -69,6 +70,7 @@ func startHTTPServer() {
 		}
 	}))
 	http.HandleFunc("GET /boot/{uuid}", logging(handleBoot))
+	http.HandleFunc("GET /machines", logging(handleGetMachines))
 
 	// Serve static files from /var/lib/herrah at /files/
 	fileServer := http.FileServer(http.Dir("/var/lib/herrah"))
@@ -125,6 +127,19 @@ func handleBoot(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+}
+
+func handleGetMachines(w http.ResponseWriter, r *http.Request) {
+	var ms map[string]machine
+	err := store.GetByPrefix("machine-", &ms)
+	if err != nil {
+		panic(err)
+	}
+	j, err := json.Marshal(ms)
+	if err != nil {
+		panic(err)
+	}
+	w.Write(j)
 }
 
 func logging(next http.HandlerFunc) http.HandlerFunc {
