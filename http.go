@@ -19,8 +19,8 @@ var indexCSS []byte
 //go:embed index.js
 var indexJS []byte
 
-//go:embed mithril.min.js
-var mithrilJS []byte
+//go:embed alpine.min.js
+var alpineJS []byte
 
 //go:embed sleep.ipxe
 var sleepIPXE []byte
@@ -59,12 +59,12 @@ func startHTTPServer() {
 			slog.Warn("Failed to server index.js", "err", err)
 		}
 	}))
-	http.HandleFunc("GET /mithril.js", logging(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("GET /alpine.js", logging(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 		w.Header().Set("Pragma", "no-cache")
 		w.Header().Set("Expires", "0")
-		_, err := w.Write(mithrilJS)
+		_, err := w.Write(alpineJS)
 		if err != nil {
 			slog.Warn("Failed to server index.js", "err", err)
 		}
