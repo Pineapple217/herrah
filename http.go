@@ -71,6 +71,7 @@ func startHTTPServer() {
 	}))
 	http.HandleFunc("GET /boot/{uuid}", logging(handleBoot))
 	http.HandleFunc("GET /machines", logging(handleGetMachines))
+	http.HandleFunc("DELETE /machines/{uuid}", logging(handleDelMachines))
 
 	// Serve static files from /var/lib/herrah at /files/
 	fileServer := http.FileServer(http.Dir("/var/lib/herrah"))
@@ -140,6 +141,13 @@ func handleGetMachines(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	w.Write(j)
+}
+func handleDelMachines(w http.ResponseWriter, r *http.Request) {
+	uuid := r.PathValue("uuid")
+	err := store.Delete("machine-" + uuid)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func logging(next http.HandlerFunc) http.HandlerFunc {
