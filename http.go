@@ -71,6 +71,7 @@ func startHTTPServer() {
 	}))
 	http.HandleFunc("GET /boot/{uuid}", logging(handleBoot))
 	http.HandleFunc("GET /machines", logging(handleGetMachines))
+	http.HandleFunc("PATCH /machines/{uuid}", logging(handlePatchMachines))
 	http.HandleFunc("DELETE /machines/{uuid}", logging(handleDelMachines))
 
 	// Serve static files from /var/lib/herrah at /files/
@@ -142,12 +143,34 @@ func handleGetMachines(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(j)
 }
+
 func handleDelMachines(w http.ResponseWriter, r *http.Request) {
 	uuid := r.PathValue("uuid")
 	err := store.Delete("machine-" + uuid)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func handlePatchMachines(w http.ResponseWriter, r *http.Request) {
+	uuid := r.PathValue("uuid")
+
+	var newm machine
+	if err := json.NewDecoder(r.Body).Decode(&newm); err != nil {
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	slog.Info("aa edit", "m", newm)
+
+	store.Set("machine-"+uuid, newm)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]any{
+		"uuid":    uuid,
+		"machine": newm,
+	})
 }
 
 func logging(next http.HandlerFunc) http.HandlerFunc {
