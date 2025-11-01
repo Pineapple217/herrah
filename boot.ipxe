@@ -4,13 +4,16 @@
 dhcp
 
 set base-url http://${next-server}/files
+set autoyast-url http://${next-server}/config/${uuid}/autoyast.xml
 
 echo Booting openSUSE MicroOS 16.0.0...
 kernel ${base-url}/pxeboot.openSUSE-MicroOS.x86_64-16.0.0.kernel \
     initrd=initrd \
     rd.neednet=1 ip=dhcp \
+    systemd.device-timeout=5000ms \
     rd.kiwi.install.pxe \
     rd.kiwi.install.image=${base-url}/openSUSE-MicroOS.x86_64-16.0.0.xz \
+    rd.kiwi.oem.installdevice=/dev/sdb \
     console=tty0 console=tty1 loglevel=3
 
 initrd ${base-url}/pxeboot.openSUSE-MicroOS.x86_64-16.0.0.initrd
