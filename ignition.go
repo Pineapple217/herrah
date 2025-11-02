@@ -92,6 +92,15 @@ func GetIgnitionConfig(m machine) (IgnitionConfig, error) {
 					Contents:  Contents{Source: "data:," + m.Name},
 				},
 				{
+					Path:      "/etc/locale.conf",
+					Mode:      420,
+					Overwrite: true,
+					Contents: Contents{
+						Source:    "data:text/plain;charset=utf-8;base64,TEFORz1lbl9HQi5VVEYtOAo=",
+						HumanRead: "LANG=en_GB.UTF-8\n",
+					},
+				},
+				{
 					Path:      "/etc/NetworkManager/system-connections/em1.nmconnection",
 					Mode:      384,
 					Overwrite: true,
