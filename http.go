@@ -28,6 +28,9 @@ var sleepIPXE []byte
 //go:embed boot.ipxe
 var bootIPXE []byte
 
+//go:embed combustion.bash
+var combustionBash []byte
+
 func startHTTPServer() {
 	http.HandleFunc("GET /", logging(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -74,6 +77,7 @@ func startHTTPServer() {
 	http.HandleFunc("PATCH /machines/{uuid}", logging(handlePatchMachines))
 	http.HandleFunc("DELETE /machines/{uuid}", logging(handleDelMachines))
 	http.HandleFunc("GET /config/{uuid}/config.ign", logging(handleGetIgnition))
+	http.HandleFunc("GET /config/{uuid}/config.bash", logging(handleGetCombustion))
 
 	// Serve static files from /var/lib/herrah at /files/
 	fileServer := http.FileServer(http.Dir("/var/lib/herrah"))
@@ -194,6 +198,28 @@ func handleGetIgnition(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(jsonData)
 	if err != nil {
 		panic(err)
+	}
+}
+
+func handleGetCombustion(w http.ResponseWriter, r *http.Request) {
+	uuid := r.PathValue("uuid")
+	var m machine
+	ok, err := store.Get("machine-"+uuid, &m)
+	if err != nil {
+		panic(err)
+	}
+	if !ok {
+		slog.Error("try to fetch autoyast without first booting", "uuid", uuid)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	_, err = w.Write(combustionBash)
+	if err != nil {
+		slog.Warn("Failed to server index.js", "err", err)
 	}
 }
 
