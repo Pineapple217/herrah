@@ -73,6 +73,7 @@ func startHTTPServer() {
 	http.HandleFunc("GET /machines", logging(handleGetMachines))
 	http.HandleFunc("PATCH /machines/{uuid}", logging(handlePatchMachines))
 	http.HandleFunc("DELETE /machines/{uuid}", logging(handleDelMachines))
+	http.HandleFunc("GET /config/{uuid}/config.ign", logging(handleGetIgnition))
 
 	// Serve static files from /var/lib/herrah at /files/
 	fileServer := http.FileServer(http.Dir("/var/lib/herrah"))
@@ -171,6 +172,29 @@ func handlePatchMachines(w http.ResponseWriter, r *http.Request) {
 		"uuid":    uuid,
 		"machine": newm,
 	})
+}
+
+func handleGetIgnition(w http.ResponseWriter, r *http.Request) {
+	uuid := r.PathValue("uuid")
+	var m machine
+	ok, err := store.Get("machine-"+uuid, &m)
+	if err != nil {
+		panic(err)
+	}
+	if !ok {
+		slog.Error("try to fetch autoyast without first booting", "uuid", uuid)
+		return
+	}
+
+	jsonData, err := GetIgnitionConfig(m)
+	if err != nil {
+		panic(err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(jsonData)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func logging(next http.HandlerFunc) http.HandlerFunc {

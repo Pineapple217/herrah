@@ -4,7 +4,7 @@
 dhcp
 
 set base-url http://${next-server}/files
-set config-url http://${next-server}/files/ig.json
+set ignition-url http://${next-server}/config/${uuid}/config.ign
 
 echo Booting openSUSE MicroOS 16.0.0...
 kernel ${base-url}/pxeboot.openSUSE-MicroOS.x86_64-16.0.0.kernel \
@@ -16,7 +16,7 @@ kernel ${base-url}/pxeboot.openSUSE-MicroOS.x86_64-16.0.0.kernel \
     rd.kiwi.oem.installdevice=/dev/sdb \
     rd.kiwi.oem.maxdisk=300G \
     rd.kiwi.install.pass.bootparam \
-    ignition.config.url=${config-url} \
+    ignition.config.url=${ignition-url} \
     console=tty0 console=tty1 loglevel=3
 
 initrd ${base-url}/pxeboot.openSUSE-MicroOS.x86_64-16.0.0.initrd
