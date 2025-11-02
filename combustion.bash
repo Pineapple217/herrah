@@ -8,6 +8,7 @@ exec > >(exec tee -a /dev/tty0) 2>&1
 systemd-firstboot --force --timezone=Europe/Brussels
 
 zypper --non-interactive install htop powertop
+powertop --auto-tune
 
 # Leave a marker
 echo "Configured with combustion" > /etc/issue.d/85-combustion.conf
