@@ -118,6 +118,15 @@ func GetIgnitionConfig(m machine) (IgnitionConfig, error) {
 						HumanRead: "[main]\n# Do not do automatic (DHCP/SLAAC) configuration on ethernet devices\n# with no other matching connections.\nno-auto-default=*\n",
 					},
 				},
+				{
+					Path:      "/etc/sudoers.d/10-admin-perms",
+					Mode:      420,
+					Overwrite: true,
+					Contents: Contents{
+						Source:    "data:text/plain;charset=utf-8;base64,YWRtaW4gQUxMPShBTEwpIE5PUEFTU1dEOiBBTEw=",
+						HumanRead: "admin ALL=(ALL) NOPASSWD: ALL",
+					},
+				},
 			},
 		},
 		Systemd: Systemd{
