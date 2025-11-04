@@ -1,7 +1,11 @@
 #!ipxe
 
 # Init networking
-dhcp
+set net0/ip {{ .IP }}
+set net0/netmask 255.255.255.0
+set net0/gateway 10.10.10.1
+set dns 1.1.1.1
+ifopen net0
 
 set base-url http://${next-server}/files
 set ignition-url http://${next-server}/config/${uuid}/config.ign
@@ -10,7 +14,8 @@ set combustion-url http://${next-server}/config/${uuid}/config.bash
 echo Booting openSUSE MicroOS 16.0.0...
 kernel ${base-url}/pxeboot.openSUSE-MicroOS.x86_64-16.0.0.kernel \
     initrd=initrd \
-    rd.neednet=1 ip=dhcp \
+    rd.neednet=1 \
+    ip={{ .IP }}::10.10.10.1:255.255.255.0:{{ .Name }}:em1:on:10.10.10.1 \
     systemd.device-timeout=5000ms \
     rd.kiwi.install.pxe \
     rd.kiwi.install.image=${base-url}/openSUSE-MicroOS.x86_64-16.0.0.xz \

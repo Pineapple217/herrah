@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"text/template"
 )
 
 const httpPort = 80
@@ -25,8 +26,8 @@ var alpineJS []byte
 //go:embed sleep.ipxe
 var sleepIPXE []byte
 
-//go:embed boot.ipxe
-var bootIPXE []byte
+//go:embed boot.ipxe.tmpl
+var bootIPXETmpl []byte
 
 //go:embed combustion.bash
 var combustionBash []byte
@@ -127,7 +128,11 @@ func handleBoot(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if m.Control == "init" {
-			_, err = w.Write(bootIPXE)
+			tmpl, err := template.New("boot.ipxe").Parse(string(bootIPXETmpl))
+			if err != nil {
+				panic(err)
+			}
+			err = tmpl.Execute(w, m)
 			if err != nil {
 				panic(err)
 			}

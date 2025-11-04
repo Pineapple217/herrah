@@ -1,6 +1,10 @@
 package main
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"encoding/base64"
+
+	"golang.org/x/crypto/bcrypt"
+)
 
 type IgnitionConfig struct {
 	Ignition Ignition `json:"ignition"`
@@ -65,6 +69,7 @@ func GetIgnitionConfig(m machine) (IgnitionConfig, error) {
 	if err != nil {
 		return IgnitionConfig{}, err
 	}
+	netCOnfig := "\n[connection]\nid=em1\ntype=ethernet\ninterface-name=em1\n\n[ipv4]\ndns-search=\nmethod=manual\naddress1=" + m.IP + "/24,10.10.10.1\ndns=1.1.1.1\nignore_auto_dns=true\n\n[ipv6]\ndns-search=\naddr-gen-mode=eui64\nmethod=ignore\n"
 
 	root := IgnitionConfig{
 		Ignition: Ignition{Version: "3.2.0"},
@@ -105,8 +110,8 @@ func GetIgnitionConfig(m machine) (IgnitionConfig, error) {
 					Mode:      384,
 					Overwrite: true,
 					Contents: Contents{
-						Source:    "data:text/plain;charset=utf-8;base64,Cltjb25uZWN0aW9uXQppZD1lbTEKdHlwZT1ldGhlcm5ldAppbnRlcmZhY2UtbmFtZT1lbTEKCltpcHY0XQpkbnMtc2VhcmNoPQptZXRob2Q9bWFudWFsCmFkZHJlc3MxPTEwLjEwLjEwLjIwMS8yNCwxMC4xMC4xMC4xCmRucz0xLjEuMS4xCmlnbm9yZV9hdXRvX2Rucz10cnVlCgpbaXB2Nl0KZG5zLXNlYXJjaD0KYWRkci1nZW4tbW9kZT1ldWk2NAptZXRob2Q9aWdub3JlCg==",
-						HumanRead: "\n[connection]\nid=em1\ntype=ethernet\ninterface-name=em1\n\n[ipv4]\ndns-search=\nmethod=manual\naddress1=10.10.10.201/24,10.10.10.1\ndns=1.1.1.1\nignore_auto_dns=true\n\n[ipv6]\ndns-search=\naddr-gen-mode=eui64\nmethod=ignore\n",
+						Source:    "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString([]byte(netCOnfig)),
+						HumanRead: netCOnfig,
 					},
 				},
 				{
