@@ -7,7 +7,7 @@ exec > >(exec tee -a /dev/tty0) 2>&1
 # Timezone
 systemd-firstboot --force --timezone=Europe/Brussels
 
-zypper --non-interactive install htop powertop
+zypper --non-interactive install htop powertop glibc-locale
 powertop --auto-tune
 
 # Leave a marker
